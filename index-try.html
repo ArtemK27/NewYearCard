@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Happy New Year</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet"> 
+
+        <style>
+            /* --- СТИЛИ ИЗ ПЕРВОГО ФАЙЛА (ОБЛОЖКА) --- */
+            
+            body {
+                background: linear-gradient(180deg, #0b1c2c 0%, #113028 100%);
+                color: white;
+                min-height: 100vh;
+                transition: background 1s ease;
+            }
+
+            body.gallery-mode {
+                background: #000 !important;
+                overflow: hidden; 
+            }
+
+            h1 {
+                font-family: "Brush Script MT", "Comic Sans MS", cursive;
+                color: #ffc107; 
+                text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+                margin-top: 50px;
+                margin-bottom: 20px;
+                font-size: 3.5rem;
+            }
+            
+            .door-container { 
+                width: 100%;
+                align-items: center;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+                margin-top: 300px;
+                margin-bottom: 40px;
+                z-index: 600 !important; 
+            }
+
+            #fade-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: #000;
+                opacity: 0;           /* Изначально прозрачный */
+                z-index: 500;         /* Перекрывает текст и карусель */
+                pointer-events: none; /* Пропускает клики */
+                transition: opacity 1.5s ease; /* Плавное появление черноты за 1.5 сек */
+            }
+
+            .door-visual { 
+                width: 150px;
+                height: auto;
+                box-shadow: 0 0 40px rgba(222, 224, 215, 0.2);
+                filter: brightness(0.6); 
+                transition: filter 0.2s, transform 0.1s; 
+            }
+
+            .door-visual:active { filter: brightness(1.0); transform: scale(0.98); }
+
+            .hint-text {
+                margin-top: 20px; color: #555; font-size: 14px; font-family: Arial, sans-serif;
+                text-transform: uppercase; letter-spacing: 3px; 
+                transition: opacity 0.5s;
+            }
+
+            .ball {
+                position: absolute;
+                width: 70px;
+                height: auto;
+                top: -60px;
+                filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5)); 
+                animation: sway 2s infinite alternate ease-in-out;
+                z-index: 10;
+            }
+
+            .ball-left { left: 10px; }
+            .ball-right { right: 10px; }
+
+            @keyframes sway { 
+                0% { transform: rotate(-15deg); } 
+                100% { transform: rotate(15deg); } 
+            }
+
+            .carousel-item img {
+                object-fit: cover;    
+                height: 350px;
+                width: 90%;        
+                border-radius: 15px;  
+                border: 2px solid #ffc107;
+                margin: 0 auto;
+            }
+
+            /* --- АНИМАЦИИ --- */
+            .shake-anim img { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+            @keyframes shake { 
+                10%, 90% { transform: translate3d(-3px, 0, 0) rotate(-1deg); } 
+                20%, 80% { transform: translate3d(3px, 0, 0) rotate(1deg); }
+                30%, 50%, 70% { transform: translate3d(-5px, 0, 0) rotate(-2deg); }
+                40%, 60% { transform: translate3d(5px, 0, 0) rotate(2deg); }
+            }
+
+            .door-open-anim img { animation: zoomInDoor 1.5s forwards; }
+            @keyframes zoomInDoor {
+                0% { transform: scale(1); opacity: 1; }
+                100% { transform: scale(20); opacity: 0; }
+            }
+
+            /* --- СТИЛИ ГАЛЕРЕИ (ИСПРАВЛЕНО ИМЯ КЛАССА) --- */
+            #gallery-section {
+                display: none; 
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                background: #000;
+                z-index: 2000;
+                opacity: 0; transition: opacity 1.5s ease;
+                
+                flex-direction: row;
+                overflow-x: scroll; scroll-snap-type: x mandatory;
+                scroll-behavior: smooth; scrollbar-width: none;
+            }
+            #gallery-section::-webkit-scrollbar { display: none; }
+
+            /* ПЕРЕИМЕНОВАЛ .slide в .gallery-slide */
+            .gallery-slide {
+                flex: 0 0 100vw; height: 100vh;
+                scroll-snap-align: center; scroll-snap-stop: always;
+                background: #000; /* Теперь это не влияет на Bootstrap */
+                display: flex; justify-content: center; align-items: center;
+                padding: 20px;
+            }
+
+            .slide-card {
+                position: relative; width: 100%; height: 100%; max-height: 850px;
+                border-radius: 20px; overflow: hidden;
+                box-shadow: 0 0 30px rgba(0, 0, 0, 1);
+                background: #050505; border: 1px solid #222;
+            }
+
+            .img-wrapper {
+                width: 100%; height: 100%; overflow: hidden; background: #000;
+            }
+
+            .slide-media { 
+                width: 100%; height: 100%; object-fit: cover; display: block; 
+                transform: scale(1.2);
+                filter: brightness(0.3) blur(5px);
+                transition: transform 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 1.5s ease;
+            }
+
+            /* Тут тоже меняем .slide на .gallery-slide */
+            .gallery-slide.viewed .slide-media {
+                transform: scale(1.05);
+                filter: brightness(1) blur(0);
+            }
+
+            .gallery-slide.viewed .slide-media.alive {
+                animation: breathe 6s ease-in-out infinite alternate;
+            }
+            @keyframes breathe {
+                0% { transform: scale(1.05); } 100% { transform: scale(1.1); } 
+            }
+
+            .gradient-overlay {
+                position: absolute; bottom: 0; left: 0; width: 100%; height: 70%;
+                background: linear-gradient(to top, #000 20%, transparent);
+                pointer-events: none; z-index: 10;
+            }
+
+            .content-box {
+                position: absolute; bottom: 30px; left: 20px; right: 20px; z-index: 20;
+                text-align: left;
+            }
+
+            .char-name {
+                font-family: 'Arial', sans-serif;
+                font-size: 24px; font-weight: 900; color: #ff3333;
+                margin-bottom: 10px; text-transform: uppercase;
+                text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+                opacity: 0; transform: translateY(20px);
+                transition: opacity 0.5s ease 0.5s, transform 0.5s ease 0.5s;
+            }
+            .gallery-slide.viewed .char-name { opacity: 1; transform: translateY(0); }
+
+            .char-text {
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 16px; line-height: 1.5; color: #ddd;
+                background: rgba(10, 10, 10, 0.7);
+                padding: 15px; border-radius: 10px;
+                border-left: 3px solid #ff3333;
+                backdrop-filter: blur(5px);
+                min-height: 60px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            }
+
+            .cursor::after { content: '|'; animation: blink 1s infinite; color: #ff3333; }
+            @keyframes blink { 0%, 100% {opacity: 1;} 50% {opacity: 0;} }
+
+            .gift-btn {
+                display: block; width: 100%; text-align: center;
+                background: #b30000; color: white;
+                padding: 15px; border-radius: 30px;
+                text-decoration: none; font-weight: bold; font-size: 18px; font-family: Arial, sans-serif;
+                margin-top: 15px; box-shadow: 0 0 20px rgba(179, 0, 0, 0.6);
+                opacity: 0; transition: opacity 1s; cursor: pointer; border: none;
+            }
+            .gift-btn.visible { opacity: 1; }
+
+            /* Модалка QR */
+            #qr-modal {
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.95); z-index: 3000;
+                display: none; justify-content: center; align-items: center;
+                opacity: 0; transition: opacity 0.5s;
+            }
+           .ticket-card {
+            background: linear-gradient(135deg, #1a1a1a, #3d0000);
+            width: 300px; padding: 30px; border-radius: 20px; text-align: center;
+            border: 2px solid #ff3333; box-shadow: 0 0 40px rgba(255, 51, 51, 0.3);
+            transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+            .qr-image { width: 200px; height: 200px; background: white; padding: 10px; border-radius: 10px; margin: 20px auto; object-fit: contain; }
+            .ticket-title { font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 5px; letter-spacing: 2px; }
+            .qr-image { width: 200px; height: 200px; background: white; padding: 10px; border-radius: 10px; margin: 20px auto; object-fit: contain; }
+            .close-btn { margin-top: 15px; background: transparent; border: 1px solid #666; color: #aaa; padding: 8px 20px; border-radius: 20px; }
+            .mobile-link { display: block; margin-top: 10px; color: #ff3333; font-size: 16px; }
+            /* Снег */
+            .snow-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2500; display: none; }
+            .snowflake { position: absolute; top: -10px; background: white; opacity: 0.5; border-radius: 50%; animation: fall linear infinite; }
+            @keyframes fall { to { transform: translateY(110vh); } }
+
+        </style>
+    </head>
+
+    <body>            
+        <div id="fade-overlay"></div>
+        <audio id="bg-music" loop><source src="music.mp3" type="audio/mpeg"></audio>
+        <audio id="knock-sound"><source src="knock.mp3" type="audio/mpeg"></audio>
+        
+        <div id="snow" class="snow-container"></div>
+
+        <div id="intro-wrapper">
+            <div class="col-12 col-md-8 col-lg-3 mx-auto text-center my-5 px-4 position-relative">
+                <img src="ball.png" class="ball ball-left">
+                <img src="ball.png" class="ball ball-right">
+
+                <h1>Happy New Year</h1>
+            
+                <div class="container my-4" style="width: 90%">
+                    <div class="row justify-content-center" >
+                            <div class="card glass-card p-3">
+                                <h5 class="card-title">Пусть этот год принесет удачу!</h5>
+                                <p class="card-text">Листай фото ниже 👇</p>
+                            </div>
+                    </div>
+                </div>
+
+                <!-- Здесь класс 'slide' от Bootstrap работает корректно, потому что мы переименовали свой класс -->
+                <div id="myCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-indicators">
+                        <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="0" class="active"></button>
+                        <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="1"></button>
+                        <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="2"></button>
+                    </div>
+
+                    <div class="carousel-inner">
+                        <div class="carousel-item active">
+                            <img src="dog.png" class="d-block w-100" alt="">
+                        </div>
+                        <div class="carousel-item">
+                            <img src="img2.png" class="d-block w-100" alt="">
+                        </div>
+                        <div class="carousel-item">
+                            <img src="img3.png" class="d-block w-100" alt="">
+                        </div>
+                    </div>
+
+                    <button class="carousel-control-prev" type="button" data-bs-target="#myCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </button>
+
+                    <button class="carousel-control-next" type="button" data-bs-target="#myCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </button>
+                </div>
+    
+                <div class="door-container" onclick="knock()">
+                    <img src="door.png" class="door-visual" id="door-img" alt="Дверь">
+                    <div class="hint-text" id="intro-text">Стукни 3 раза</div>
+                </div>
+
+
+                <footer class="pt-3 mt-4 text-body-secondary border-top" style="font-size: 0.9rem; color: rgba(255,255,255,0.7) !important;">
+                    <img src="kitanya-vtuber.gif" style="width: 50px">
+                    © Сделано с новогодним настроением!
+                    <img src="kitanya-vtuber.gif" style="width: 50px">
+                </footer>
+            </div> 
+        </div>
+
+        <div id="gallery-section">
+            
+            <!-- ВНИМАНИЕ: Здесь теперь class="gallery-slide" -->
+            <div class="gallery-slide">
+                <div class="slide-card">
+                    <div class="img-wrapper">
+                        <img src="slide1.jpg" class="slide-media alive" alt="Sanwoo">
+                    </div>
+                    <div class="gradient-overlay"></div>
+                    <div class="content-box">
+                        <div class="char-name">САНУ</div>
+                        <div class="char-text" data-text="Ты наконец-то пришла... Я ждал тебя. В этом подвале время идет иначе."></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gallery-slide">
+                <div class="slide-card">
+                    <div class="img-wrapper">
+                        <img src="slide2.jpg" class="slide-media alive" alt="Bum">
+                    </div>
+                    <div class="gradient-overlay"></div>
+                    <div class="content-box">
+                        <div class="char-name" style="color: rgb(3, 185, 48);">ЮНБУМ</div>
+                        <div class="char-text" style="color: rgb(3, 185, 48);" data-text="П-пожалуйста, только тихо... Сану не любит шум. Но для тебя он разрешил праздник."></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gallery-slide">
+                <div class="slide-card">
+                    <div class="img-wrapper">
+                        <img src="slide3.jpg" class="slide-media alive" alt="Nii-chan">
+                    </div>
+                    <div class="gradient-overlay"></div>
+                    <div class="content-box">
+                        <div class="char-name" style="color: rgb(16, 173, 221);" >НИИ-ЧАН</div>
+                        <div class="char-text" style="color: rgb(16, 173, 221);" data-text="Я всегда знал, как тебя заманить. Новый год — время для секретов. Приходи ближе, я угостю... фейерверком."></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gallery-slide">
+                <div class="slide-card">
+                    <div class="img-wrapper">
+                        <img src="slide4.jpg" class="slide-media alive" alt="Yui">
+                    </div>
+                    <div class="gradient-overlay"></div>
+                    <div class="content-box">
+                        <div class="char-name" style="color: rgb(202, 223, 16);">Юи</div>
+                        <div class="char-text" style="color: rgb(202, 223, 16);" data-text="Ты открыла дверь... как в те времена, когда я ждал 'нии-чана'. Но теперь Новый год, и я не боюсь. Ты — мой свет в темноте. С праздником, давай поиграем?"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gallery-slide">
+                <div class="slide-card">
+                    <div class="img-wrapper">
+                        <img src="gift_bg.jpg" class="slide-media" alt="Gift">
+                    </div>
+                    <div class="gradient-overlay"></div>
+                    <div class="content-box" style="bottom: 60px;">
+                        <div class="char-name" style="text-align: center; color: #fff;">ТВОЙ ПОДАРОК</div>
+                        <div class="char-text" style="text-align: center;" data-text="Ты пережила этот год. Ты умница. Забирай свой подарок!"></div>
+                        <button class="gift-btn" id="final-btn" onclick="openQR()">🎁 ПОЛУЧИТЬ ДОСТУП</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="qr-modal">
+            <div class="ticket-card">
+                <div class="ticket-title">VIP PASS</div>
+                <div class="ticket-desc">Доступ к секретному подарку</div>
+                <img src="reze.gif" class="qr-image" alt="QR">
+                <a href="https://disk.yandex.ru/d/tc2C0AlMxO7TRg" class="mobile-link" target="_blank">Скачать файл</a>
+                <button class="close-btn" onclick="closeQR()">Закрыть</button>
+            </div>
+        </div>
+            
+        <script src="js/bootstrap.bundle.min.js"></script>
+
+        <script>
+            let knocks = 0;
+            const doorImg = document.getElementById('door-img');
+            const doorContainer = document.querySelector('.door-container');
+            const introText = document.getElementById('intro-text');
+            const introWrapper = document.getElementById('intro-wrapper');
+            
+            const gallerySection = document.getElementById('gallery-section');
+            // Обновил селектор в JS
+            const slides = document.querySelectorAll('.gallery-slide');
+
+            const bgMusic = document.getElementById('bg-music');
+            const knockSound = document.getElementById('knock-sound');
+            const snow = document.getElementById('snow');
+
+            const qrModal = document.getElementById('qr-modal');
+            const qrCard = document.querySelector('.ticket-card');
+
+
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) { bgMusic.pause(); } 
+                else { if (knocks >= 1) bgMusic.play().catch(e=>{}); }
+            });
+
+            function knock() {
+                knocks++;
+                knockSound.currentTime = 0; 
+                knockSound.play().catch(e=>{});
+
+                if (navigator.vibrate) navigator.vibrate(70);
+
+                doorContainer.classList.remove('shake-anim');
+                void doorContainer.offsetWidth;
+                doorContainer.classList.add('shake-anim');
+
+                if(knocks === 1) introText.innerText = "КТО ТАМ?";
+                if(knocks === 2) introText.innerText = "ЕЩЁ...";
+                
+                if(knocks === 3) {
+                    introText.style.opacity = 0;
+
+                    document.getElementById('fade-overlay').style.opacity = '1';
+                    
+                    doorContainer.classList.add('door-open-anim');
+                    bgMusic.volume = 0.5; 
+                    bgMusic.play().catch(e=>{}); 
+
+                    setTimeout(() => {
+                        introWrapper.style.opacity = '0';
+                        introWrapper.style.pointerEvents = 'none';
+                        document.body.classList.add('gallery-mode');
+
+                        gallerySection.style.display = 'flex';
+                        snow.style.display = 'block';
+                        createSnow();
+                        
+                        setTimeout(() => {
+                            gallerySection.style.opacity = '1';
+                            startObserving();
+                            
+                            // Запуск для первого слайда
+                            const firstSlide = slides[0];
+                            firstSlide.classList.add('viewed');
+                            const firstText = firstSlide.querySelector('.char-text');
+                            if(firstText) typeWriter(firstText, firstText.dataset.text);
+
+                            setTimeout(() => { introWrapper.style.display = 'none'; }, 1000);
+                        }, 50);
+
+                    }, 1200);
+                }
+            }
+
+            function typeWriter(element, text, speed = 40) {
+                if (element.classList.contains('typed')) return;
+                element.innerHTML = '<span class="cursor"></span>';
+                element.classList.add('typed');
+                
+                if(!text) return;
+
+                let i = 0;
+                function type() {
+                    if (i < text.length) {
+                        element.innerHTML = text.substring(0, i + 1) + '<span class="cursor"></span>';
+                        i++; setTimeout(type, speed);
+                    } else {
+                        if (element.nextElementSibling && element.nextElementSibling.classList.contains('gift-btn')) {
+                            element.nextElementSibling.classList.add('visible');
+                        }
+                    }
+                }
+                type();
+            }
+
+            function startObserving() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            if (navigator.vibrate) navigator.vibrate(20);
+                            
+                            entry.target.classList.add('viewed');
+
+                            const textBox = entry.target.querySelector('.char-text');
+                            const textToType = textBox ? textBox.getAttribute('data-text') : "";
+                            
+                            setTimeout(() => {
+                                if (textToType) typeWriter(textBox, textToType, 40);
+                            }, 400);
+                        }
+                    });
+                }, { threshold: 0.5 });
+                
+                slides.forEach(slide => observer.observe(slide));
+            }
+
+            function openQR() {
+                qrModal.style.display = 'flex';
+                setTimeout(() => { qrModal.style.opacity = '1'; qrCard.style.transform = 'scale(1)'; }, 10);
+            }
+            function closeQR() {
+                qrModal.style.opacity = '0'; qrCard.style.transform = 'scale(0.5)';
+                setTimeout(() => { qrModal.style.display = 'none'; }, 500);
+            }
+
+            function createSnow() {
+                const snowContainer = document.getElementById('snow');
+                for (let i = 0; i < 30; i++) {
+                    const snowflake = document.createElement('div');
+                    snowflake.classList.add('snowflake');
+                    snowflake.style.left = Math.random() * 100 + 'vw';
+                    snowflake.style.width = snowflake.style.height = (Math.random() * 4 + 2) + 'px';
+                    snowflake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                    snowflake.style.opacity = Math.random() * 0.5 + 0.1;
+                    snowflake.style.background = '#ccc'; 
+                    snowContainer.appendChild(snowflake);
+                }
+            }
+        </script>
+    </body>
+</html>
